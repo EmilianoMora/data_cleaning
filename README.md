@@ -1,7 +1,7 @@
 # data_cleaning
 This repository is aimed store basic data cleaning scripts (mostly for me)
 
-Through many years of doing data analyses for my masters, PhD and posdoc, I have developed many scripts to help me check the quality of my data. However, these scripts ad the knowledge within them are usually scatered in many different files. This repository is aimed at putting it in all together to keep track of them. 
+Through many years of doing data analyses for my masters, PhD and posdoc, I have developed many scripts to help me check the quality of the data in a database and spot common mistakes. However, all these scripts and the knowledge within them are usually scatered in many different files. This repository is aimed at putting it in all together to keep track of them. 
 
 In order to make it easier for me and not make it specific to some of the datasets I used, I am using a compelty new dataset and try to introduce several of the common mistakes I've found on my data sets.
 
@@ -50,3 +50,20 @@ ugly = uglify(
 ugly.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY.csv", index=False)
 ```
 ## Start the datacleaning process with R
+### Used packages
+In order to make all of the data cleaning, I used the following R packages:
+```R
+library(tidyverse)
+library(data.table)
+library(lubridate)
+library(stringr)
+library(ggplot2)
+library(janitor)
+library(skimr)
+library(corrplot)
+```
+### Load data
+```R
+setwd("~/Downloads/social-media-user-behavior-dataset")
+df <- read_csv("social_media_user_behavior_UGLY.csv", col_names = T)
+```
