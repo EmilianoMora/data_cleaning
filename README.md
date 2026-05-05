@@ -1,22 +1,41 @@
 # data_cleaning
-This repository is aimed store basic data cleaning scripts (mostly for me)
 
-Through many years of doing data analyses for my masters, PhD and posdoc, I have developed many scripts to help me check the quality of the data in a database and spot common mistakes. However, all these scripts and the knowledge within them are usually scatered in many different files. This repository is aimed at putting it in all together to keep track of them. 
+This repository is aimed to store basic data cleaning scripts (mostly for personal use).
 
-In order to make it easier for me and not make it specific to some of the datasets I used, I am using a compelty new dataset and try to introduce several of the common mistakes I've found on my data sets.
+Through many years of doing data analyses for my master's, PhD, and postdoc, I have developed many scripts to help me check the quality of the data in a database and spot common mistakes. However, all the scripts I created were specific to the datasets I was working with, making them difficult to reuse or share.
+
+In order to make it easier for me and not make it specific to some of the datasets I used, I am using a completely new dataset and try to introduce several of the common mistakes I've found in my data. This way, the scripts become more general and applicable to various datasets.
+
+## Table of Contents
+- [Download a dataset](#download-a-dataset)
+- [Introducing errors in the database](#introducing-errors-in-the-database)
+- [Start the data cleaning process with R](#start-the-data-cleaning-process-with-r)
+  - [Used packages](#used-packages)
+  - [Load data](#load-data)
+  - [Get basic overview of the data](#get-basic-overview-of-the-data)
+  - [Detecting fake NA entries](#detecting-fake-na-entries)
+  - [Some error in scoring](#some-error-in-scoring)
+  - [Eliminating rows with NA's](#eliminating-rows-with-nas)
+  - [Identify duplicated data](#identify-duplicated-data)
+  - [Correct corrupted categories](#correct-corrupted-categories)
 
 ## Download a dataset
-The dataset that I will be using was downloaded from [kaggle.com](https://www.kaggle.com). This webpage hosts a wide variety of databases on very differerent topics.
 
-For the excercises in this repository, I will be using the *Social Media User Behavior Dataset*. This dataset was syntehtically generated, so it is not true data. More information about the dataset can be found [here](https://www.kaggle.com/datasets/hamnamunir/social-media-user-behavior-dataset/data).
+The dataset that I will be using was downloaded from [kaggle.com](https://www.kaggle.com). This webpage hosts a wide variety of databases on very different topics.
+
+For the exercises in this repository, I will be using the *Social Media User Behavior Dataset*. This dataset was synthetically generated, so it is not true data. More information about the dataset can be found [here](https://www.kaggle.com/datasets/hamnamunir/social-media-user-behavior-dataset).
 
 In order to download the data, I used the following command:
+
 ```sh
 curl -L -o ~/Downloads/social-media-user-behavior-dataset.zip\
   https://www.kaggle.com/api/v1/datasets/download/hamnamunir/social-media-user-behavior-dataset
 ```
+
 ## Introducing errors in the database
-In order to introduce messyness into the dataset, I used some custom python code to introduce some common errors such as the inclusion of some duplicated entries and the corruption of some categories.
+
+In order to introduce messiness into the dataset, I used custom Python code to introduce some common errors such as the inclusion of some duplicated entries and the corruption of some categorical values:
+
 ```py
 import pandas as pd
 import numpy as np
@@ -41,14 +60,16 @@ df = pd.concat([df, duplicates])
 df.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY.csv", index=False)
 ```
 
-[*Ugly CSV generator*](https://github.com/LucaCappelletti94/ugly_csv_generator) which is a python package that introduces automated non-destructive errors.
+Alternatively, you can use [*Ugly CSV generator*](https://github.com/LucaCappelletti94/ugly_csv_generator), which is a Python package that introduces automated non-destructive errors.
 
 To install *Ugly CSV generator* just run the following command:
+
 ```sh
 pip install ugly_csv_generator
 ```
 
-To run introduce the errors, we can use the following commands in python. A description of all the error types (i.e., available uglufications) can be found [here](https://github.com/LucaCappelletti94/ugly_csv_generator).
+To introduce the errors, we can use the following commands in Python. A description of all the error types (i.e., available uglifications) can be found [here](https://github.com/LucaCappelletti94/ugly_csv_generator):
+
 ```py
 import pandas as pd
 from ugly_csv_generator import uglify
@@ -75,9 +96,13 @@ ugly = uglify(
 
 ugly.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY_2.csv", index=False)
 ```
-## Start the datacleaning process with R
+
+## Start the data cleaning process with R
+
 ### Used packages
-In order to make all of the data cleaning, I used the following R packages:
+
+In order to perform all of the data cleaning, I used the following R packages:
+
 ```R
 library(tidyverse)
 library(data.table)
@@ -88,12 +113,16 @@ library(janitor)
 library(skimr)
 library(corrplot)
 ```
+
 ### Load data
+
 ```R
 setwd("~/Downloads/social-media-user-behavior-dataset")
 df <- read_csv("social_media_user_behavior_UGLY_2.csv", col_names = T)
 ```
+
 ### Get basic overview of the data
+
 ```R
 # Check memory usage
 format(object.size(df), units = "MB")
@@ -108,19 +137,24 @@ tail(df) #See last lines of the dataframe
 
 sample_n(df, 5) #Sample 5 random rows
 
-# The following three gives us the type of strings in each column. They give moreless similar information.
+# The following three give us the type of strings in each column. They give more or less similar information.
 str(df)
 summary(df)
 sapply(df, class)
 ```
+
 ### Detecting fake NA entries
-From the str() command we can see that all the columns have string characters (i.e., chr). However, seeing the value sof some of these columns, we can see that some of them should have numeric values. For example, the columns: age, daily_usage_hours, followers_counts, etc. In one case, we can see that the column 'account_join_date' string should be a date, but is coded as a character. If we try to force some of the columns that are supposed to be numeric we will have an error:
+
+From the `str()` command we can see that all the columns have string characters (i.e., `chr`). However, seeing the values of some of these columns, we can see that some of them should have numeric values. For example, the age column should be numeric. Let's try to convert it:
+
 ```
 > df$age <- as.numeric(df$age)
 Warning message:
 NAs introduced by coercion 
 ```
-We can take a look at the data in this column to see where is the error:
+
+We can take a look at the data in this column to see where the error is:
+
 ```
 > as.numeric(df$age)
    [1]  NA  30  25  32  39  25  25  39  NA  33  23  31  23  NA  23  28  13  NA  13  NA  22  NA  NA  18  29  NA  NA  19  NA  NA  15  38  25  NA  27  15  22  27  17  30  NA
@@ -152,18 +186,25 @@ We can take a look at the data in this column to see where is the error:
 Warning message:
 NAs introduced by coercion
 ```
-We can see that NA's are stored differently in this column. In this case they are found as NA or NaN. This is just this column, it is likely that other columns have other ways to specify NA.
-To detect all the different ways in which an NA can be found I use the following command that gives you a list of all the potential ways in which an NA can be stored. Basically, this command:
 
+We can see that NA's are stored differently in this column. In this case they are found as `NA` or `NaN`. This is just in this column; it is likely that other columns have other ways to specify NA.
+
+To detect all the different ways in which an NA can be found, I use the following command that gives you a list of all the potential ways in which an NA can be stored:
+
+```R
+different_ways_NAs <- unique(unlist(lapply(df, function(x) unique(x[grepl("^(na|nan|n/a|#n/a|#n/d|#RIF!|null|none|missing|nil|unknown|blank|\\.*|-+|/+|_+|\\?+)$", trimws(as.character(x)), ignore.case = TRUE)]))))
+print(different_ways_NAs)
+```
+
+This command:
 - Scans all columns
 - Converts values to character
 - Trims whitespace
-- Detects common “fake NA” representations
+- Detects common "fake NA" representations
 - Returns the unique suspicious values found
-```R
-different_ways_NAs <- unique(unlist(lapply(df, function(x) unique(x[grepl("^(na|nan|n/a|#n/a|#n/d|#RIF!|null|none|missing|nil|unknown|blank|\\.*|-+|/+|_+|\\?+)$", trimws(as.character(x)), ignore.case = TRUE)]))))
-```
-The following code automatically detects all potential fake NA's and transforms them as propeor NA's (empty space). I we run the original one liner code above, we will see that now it should be empty.
+
+The following code automatically detects all potential fake NA's and transforms them as proper NA's (empty space). If we run the original one-liner code above, we will see that now it should be empty:
+
 ```R
 df[] <- lapply(df, function(x) {
   x <- trimws(as.character(x))
@@ -171,19 +212,26 @@ df[] <- lapply(df, function(x) {
   x
 })
 ```
-Now we can see the 'age' column for example and we will be able to speficy this column as a numeric without error:
+
+Now we can convert the 'age' column to numeric without error:
+
 ```R
 df$age <- as.numeric(df$age)
 str(df)
 ```
-In some cases the NA is stored as a '0'. Whether or not a zero is an NA needs to be checked with the person that created the dataframe.
+
+**Note:** In some cases the NA is stored as a '0'. Whether or not a zero is an NA needs to be checked with the person that created the dataframe.
+
 ### Some error in scoring
-Now, we can take a look at the columns called *daily_usage_hours*. We can deduce that it should have numeric strings. However with the str(df) command, we can see that it is a chracter string. When we try to force the column to be numeric, we can see that there is an error, meaning that it has some *chr* strings somewhere.
-We can take a look at the values of this column and how many times each value is found:
+
+Now, we can take a look at the column called *daily_usage_hours*. We can deduce that it should have numeric values. However, with the `str(df)` command, we can see that it is a character string. Let's check what values are in this column:
+
 ```R
 table(df$daily_usage_hours)
 ```
-From the results, we can see that there are some value sthat are not number, for example *I*, *l*, *o* and *O*. It is likely that the some of them are meant to be 1's and other are supposed to be 0's.
+
+From the results, we can see that there are some values that are not numbers, for example *I*, *l*, *o*, and *O*. It is likely that some of them are meant to be 1's and others are supposed to be 0's. Here's the output:
+
 ```
 > table(df$daily_usage_hours)
 
@@ -198,17 +246,23 @@ From the results, we can see that there are some value sthat are not number, for
    l    o    O 
   14    6    9 
 ```
-We can use the following code to find which ones are not number, in case one is skipping from us:
+
+We can use the following code to find which ones are not numbers, in case one is escaping from us:
+
 ```R
 unique(df$daily_usage_hours[!grepl("^[0-9]*\\.?[0-9]+$", trimws(as.character(df$daily_usage_hours)))])
 ```
-Depending on the information of the dataframe, we could choose to convert all the incorrect entries as a NA.
+
+Depending on the information from the dataframe creator, we could choose to convert all the incorrect entries as NA:
+
 ```R
 df$daily_usage_hours[
   !grepl("^[0-9]*\\.?[0-9]+$", trimws(as.character(df$daily_usage_hours)))
 ] <- NA
 ```
-However, they may not be NA's. In this case I will convert the l and I to 1's and o and O to zeros.
+
+However, they may not be NA's. In this case I will convert the *l* and *I* to 1's and *o* and *O* to zeros:
+
 ```R
 df$daily_usage_hours <- trimws(as.character(df$daily_usage_hours)) #Trim white spaces
 
@@ -217,7 +271,9 @@ df$daily_usage_hours[df$daily_usage_hours %in% c("o", "O")] <- "0"
 
 df$daily_usage_hours <- as.numeric(df$daily_usage_hours)
 ```
-But I can also do it for all the columns.
+
+We can also apply this correction to all columns automatically:
+
 ```R
 df[] <- lapply(df, function(col) {
   
@@ -236,14 +292,20 @@ df[] <- lapply(df, function(col) {
   return(col)
 })
 ```
+
 ### Eliminating rows with NA's
-The uglification of the databse introduced many rows with NA's that probably should be eliminated. In the case of ther this dataframe, the solution on which rows to eliminate is quite easy. We cansee that the *user_id* is a assigned only once to each user (user_01 = USR00001; user_02 = USR00002; ...). Given that we have this information, we can eliminate all rows that have an NA or a zero in thos column.
+
+The uglification of the database introduced many rows with NA's that probably should be eliminated. In the case of this dataframe, the solution on which rows to eliminate is quite easy. We can eliminate rows where the user_id is 0 or a blank space:
+
 ```R
 df <- filter(df, user_id != 0 ) %>%
   filter(user_id != " ")
 ```
+
 ### Identify duplicated data
-So, I had included 20 duplicated rows. The easiest way to find them is by find the duplicated entries in the *user_id* column because, in theory, there should only one entry per user.
+
+I had included 20 duplicated rows. The easiest way to find them is by finding the duplicated entries in the *user_id* column because, in theory, there should only be one entry per user:
+
 ```R
 if ("user_id" %in% colnames(df)) {
   
@@ -254,21 +316,30 @@ if ("user_id" %in% colnames(df)) {
   print(dup_ids)
 }
 ```
-To eliminate them we can use a two ways:
+
+To eliminate them we can use two approaches:
+
 ```R
+# Method 1: Base R
 df <- df[!duplicated(df$user_id), ]
-# or using 'dplyr'
+
+# Method 2: Using dplyr
 df <- distinct(df, user_id, .keep_all = TRUE)
 ```
+
 ### Correct corrupted categories
-Using the following command, we can see that some categories should be collapsed into a single one. USA is written ins different ways.
+
+Using the following command, we can see that some categories should be collapsed into a single one. USA is written in different ways:
+
 ```R
 > table(df$country)
 
-    Australia        Brazil        Canada       Germany         India       Nigeria      Pakistan         U.S.A           UAE            UK United States            US           usa           USA 
-          144            91           163           138           323            97           369            17           182           179            30            25            28           214 
+    Australia        Brazil        Canada       Germany         India       Nigeria      Pakistan         U.S.A           UAE            UK United States            US           usa           USA
+          144            91           163           138           323            97           369            17           182           179            30            25            28           214
 ```
-The following code will do the following code converts everything to lowercase temporarily, removes whitespace, maps all U.S. variants to "USA".
+
+The following code converts everything to lowercase temporarily, removes whitespace, and maps all U.S. variants to "USA":
+
 ```R
 df$country <- trimws(tolower(df$country))
 
@@ -279,3 +350,7 @@ df$country[df$country %in% c(
   "united states"
 )] <- "USA"
 ```
+
+---
+
+**Happy data cleaning!** If you have any questions or suggestions, feel free to open an issue or reach out.
