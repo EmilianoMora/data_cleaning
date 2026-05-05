@@ -18,24 +18,27 @@ curl -L -o ~/Downloads/social-media-user-behavior-dataset.zip\
 ## Introducing errors in the database
 In order to introduce messyness into the dataset, I used some custom python code to introduce some common errors such as the inclusion of some duplicated entries and the corruption of some categories.
 ```py
+import pandas as pd
+import numpy as np
+
 # Load your data
 df = pd.read_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior.csv")
 
-# Add duplicates by sampling 20 entries randomly and then concatenating it to the dataframe
-duplicates = df.sample(frac=0.01)
-df = pd.concat([df, duplicates])
-
 # Change only SOME existing "USA" values to "U.S.A"
 variants = ["U.S.A", "US", "United States", "usa"]
-
 mask = df["country"] == "USA"
-
-rows = df[mask].sample(frac=0.3).index
+rows = df[mask].sample(frac=0.32).index
 
 df.loc[rows, "country"] = np.random.choice(
     variants,
     size=len(rows)
 )
+
+# Add duplicates by sampling 20 entries randomly and then concatenating it to the dataframe
+duplicates = df.sample(frac=0.01)
+df = pd.concat([df, duplicates])
+
+df.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY.csv", index=False)
 ```
 
 [*Ugly CSV generator*](https://github.com/LucaCappelletti94/ugly_csv_generator) which is a python package that introduces automated non-destructive errors.
@@ -48,8 +51,9 @@ pip install ugly_csv_generator
 To run introduce the errors, we can use the following commands in python. A description of all the error types (i.e., available uglufications) can be found [here](https://github.com/LucaCappelletti94/ugly_csv_generator).
 ```py
 import pandas as pd
+from ugly_csv_generator import uglify
 
-df = pd.read_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior.csv")
+df = pd.read_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY.csv")
 
 df["zero"] = 0
 
@@ -69,7 +73,7 @@ ugly = uglify(
     seed = 42,
 )
 
-ugly.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY.csv", index=False)
+ugly.to_csv("~/Downloads/social-media-user-behavior-dataset/social_media_user_behavior_UGLY_2.csv", index=False)
 ```
 ## Start the datacleaning process with R
 ### Used packages
@@ -87,7 +91,7 @@ library(corrplot)
 ### Load data
 ```R
 setwd("~/Downloads/social-media-user-behavior-dataset")
-df <- read_csv("social_media_user_behavior_UGLY.csv", col_names = T)
+df <- read_csv("social_media_user_behavior_UGLY_2.csv", col_names = T)
 ```
 ### Get basic overview of the data
 ```R
@@ -119,22 +123,32 @@ NAs introduced by coercion
 We can take a look at the data in this column to see where is the error:
 ```
 > as.numeric(df$age)
-   [1]  30  25  32  39  25  25  39  33  23  31  23  NA  23  28  13  13  22  NA  18  29  19  NA  NA  15  38  25  27  15  22
-  [30]  27  17  30  22  24  NA  22  41  26  18  NA  NA  33  17  NA  28  13  16  28  32  28  26  24  NA  15  21  23  35  29
-  [59]  13  29  23  NA  21  31  35  34  20  24  29  34  23  25  18  17  33  37  26  NA  35  29  21  NA  29  NA  39  26  39
-  [88]  13  33  27  24  27  13  NA  25  29  NA  38  22  20  22  34  29  22  31  27  34  21  24  23  15  29  29  27  25  NA
- [117]  15  23  24  20  25  30  42  28  29  26  13  26  NA  27  46  25  NA  29  26  NA  17  36  33  33  19  38  NA  15  31
-.
-.
-.
-.
-.
- [871]  16  19  35  19  NA  48  30  28  20  32  22  NA  27  47  26  36  21  26  41  21  41  32  NA  22  32  34  31  14  21
- [900]  NA  25  26  31  28  16  30  31  31  35  33  30  26  13  NA  30  28  29  NA  16  18  35  26  32  27  27  34  22  27
- [929]  NA  23  23  24  28  23  37  19  25  NA  23  38  NA  28  35  15  29  34  NA  27  35  22  38  45  NA  24  23  NA  38
- [958]  39  22  23  24  16  19  18  20  26  28  39  19  NA  34  25  26  32  NA  NA  18  NA  30  28  30  NA  29  46  21  22
- [987]  22 NaN  NA  22  21  NA  36  38  22   0  20  30  22  32
- [ reached getOption("max.print") -- omitted 1318 entries ]
+   [1]  NA  30  25  32  39  25  25  39  NA  33  23  31  23  NA  23  28  13  NA  13  NA  22  NA  NA  18  29  NA  NA  19  NA  NA  15  38  25  NA  27  15  22  27  17  30  NA
+  [42]  22  24  NA  NA  22  41  26  NA  18  NA  NA  NA  33  17  NA  28  13  NA  16  NA  NA  28  32  NA  28  26  24  NA  15  21  23  35  29  NA  13  29  NA  23  NA  21  31
+  [83]  35  34  20  24  29  NA  34  23  25  NA  18  17  33  37  NA  26  35  29  NA  21  NA  29  NA  39  26  39  13  33  NA  27  24  27  NA  13  NA  25  NA  29  38  22  20
+ [124]  22  34  29  22  31  NA  27  34  21  NA  24  23  15  29  29  27  NA  25  NA  15  23  24  20  25  NA  30  42  28  NA  29  26  13  NA  26  27  46  25  29  26  17  36
+ [165]  33  NA  NA  33  19  38  NA  15  31  44  19  22  27  22  NA  NA  14  NA  27  18  30  19  NA  39  20  NA  24  NA  33  17  NA  28  NA  NA  37  14  NA  28  NA  29  33
+ [206]  17  16  31  29  29  29  21  28  29  21  NA  NA  41  30  NA  17  32  19  33  36  NA  NA  20  NA  NA  NA  34  30  33  42  25  NA  20  19  20  26  NA  29  29  33  NA
+ [247]  NA  NA  27  38  NA  NA  24  48  NA  32  NA  20  18  30 NaN  NA  25  32  30  26  20  14  NA  23  33  NA  28  17  28  30  19  28  27  17  29  NA  NA  31  35  35  NA
+ [288]  NA  15  19  31  NA  31  31  NA  57 NaN  31  NA  36  34  32  24  33  20  NA  NA  NA  25  23  27  NA  45  NA  13  32  NA  14  23  NA  NA  NA  NA  NA  35  27  18  21
+ [329]  32  21  28  27  NA  21  44  32  13  28  21  33  20  26  NA  31  33  NA  17  24  23  21  NA  41  30  16  34  43  NA  NA  35  14  23  NA  37  21  30  33  19  NA  NA
+ [370]  26  13  18  NA  NA  24  17  40  15  23  28  38  15  36  NA  27 NaN  NA  19  30  28  22  NA  27  23  27  32  39  17  44  13  25  31  29  22  25  23  22  33  29  21
+ [411]  34  29  33  NA  32  20  NA  22  32  31 NaN  26  27  37  22  31  25 NaN  25  NA  35  33  33  37  27  NA  32  NA  24  29  25  27  31  20  43  18  17  36  33  NA  31
+ [452]  32  26  NA  NA  19  NA  NA  27  21  34  NA  25  NA  20  24  NA  30  22  NA  20  NA  28  28  22  NA  23  28  NA  15  15  21  25  29  38   0  NA  33  NA  25  26  18
+ [493]  26  24  29 NaN  20  31  NA  NA  39  26  30 NaN  32  NA  23  NA  NA  NA  28  NA  27 NaN  27  20  NA  NA  27  NA  30  38  34  44  NA  NA  20  33  28  44  20  20  22
+ [534]  13  22  NA  20  28  NA  29  42  34  NA  NA  22  19  NA  NA  30  NA  16 NaN  NA  41  36  23  13  37  26  36  14  NA  22  NA  27  27  23  NA  NA  NA  31  18  NA  NA
+ [575]  25  NA  27  NA  31  NA  32  18   0  NA  14  37 NaN  29  21  39  27  NA  36  27  NA  43  41  NA  25  NA  34  32  37  19  32  NA  35  NA  NA  13  NA  17  13  NA  NA
+ [616]  24  32  39  27  NA  40  15  NA  13  26  30  NA  26  13  26  NA  16  32  29  19  22  18  26  34  19   0  NA  31  22  20  26  18  22  17  42  NA  27  21  NA  NA  NA
+ [657]  NA  28  26  25  31  NA  33  NA  22  22  24  NA  13  14  37  40  25  NA  31  29  NA  NA  51  NA  35  NA  25  NA  19  14  28  NA  20  15  21  18  40  34  26  38  27
+ [698]  NA  20  NA  NA  39  31  NA  18  25  NA  NA  19  NA  15  34  NA  42  15  31  21  NA  23  22  NA  NA  20  NA  27  20  29  26  25  19  22  33  31  19  27  NA  NA   0
+ [739]  NA  33  13  31  21  31  NA  20  13  NA  13  27  29  NA  19  NA  32  13  26  17  NA  21  27  20  23  35  22  33  17  NA  31  38  13  20  NA   0  31  25  29  22  27
+ [780]  25  36  29  NA  29  NA  NA  23  NA  23  NA  23  30  23  29  43  33  24  36  NA  NA  23  13  18  13  NA  24  27  40  29  25  33  13  NA  28  33  NA  NA  15  36  NA
+ [821]  29  23  32  NA  45  28  28  23  20  NA  NA  33  NA  NA  20  27  NA  23  NA  30  29  35 NaN  22  NA  24  NA  19  23  30  33  19  33  37  30  42  20  17   0  13  NA
+ [862]  38  32  26  NA  NA  29  17  46  28  27  32  30  28  20  30  42  37  39  22  NA  19  NA  25  27  35  13  39  25  NA  NA  23  18  13  33  27  NA  NA   0  16  NA  16
+ [903]  24  40  NA  NA  24  NA  14  25  24  NA  NA  13  26  25  32  41  36  24  18  NA  47  NA  NA  27  27  26  NA  28  NA NaN  25  22  22  26  NA  NA  22  21  27  24  NA
+ [944]  NA  39  13  35  NA  36  NA  NA  13  24  NA   0  24  15  20  18  41  34  37  NA  32  17  22  30  17  32  25  24 NaN  32  30  24  36  18  31  31  24  NA  29  16  NA
+ [985]  NA  34  25  22  NA  NA  NA  NA  35  21  15  14  31  NA  NA  16
+ [ reached getOption("max.print") -- omitted 1863 entries ]
 Warning message:
 NAs introduced by coercion
 ```
@@ -147,7 +161,7 @@ To detect all the different ways in which an NA can be found I use the following
 - Detects common “fake NA” representations
 - Returns the unique suspicious values found
 ```R
-different_ways_NAs <- unique(unlist(lapply(df, function(x) unique(x[grepl("^(na|nan|n/a|#n/a|#n/d|null|none|missing|nil|unknown|blank|\\s*)$", trimws(as.character(x)), ignore.case = TRUE)]))))
+different_ways_NAs <- unique(unlist(lapply(df, function(x) unique(x[grepl("^(na|nan|n/a|#n/a|#n/d|#RIF!|null|none|missing|nil|unknown|blank|\\.*|-+|/+|_+|\\?+)$", trimws(as.character(x)), ignore.case = TRUE)]))))
 ```
 The following code automatically detects all potential fake NA's and transforms them as propeor NA's (empty space). I we run the original one liner code above, we will see that now it should be empty.
 ```R
@@ -228,5 +242,40 @@ The uglification of the databse introduced many rows with NA's that probably sho
 df <- filter(df, user_id != 0 ) %>%
   filter(user_id != " ")
 ```
+### Identify duplicated data
+So, I had included 20 duplicated rows. The easiest way to find them is by find the duplicated entries in the *user_id* column because, in theory, there should only one entry per user.
+```R
+if ("user_id" %in% colnames(df)) {
+  
+  dup_ids <- df %>%
+    group_by(user_id) %>%
+    filter(n() > 1)
+  
+  print(dup_ids)
+}
+```
+To eliminate them we can use a two ways:
+```R
+df <- df[!duplicated(df$user_id), ]
+# or using 'dplyr'
+df <- distinct(df, user_id, .keep_all = TRUE)
+```
+### Correct corrupted categories
+Using the following command, we can see that some categories should be collapsed into a single one. USA is written ins different ways.
+```R
+> table(df$country)
 
+    Australia        Brazil        Canada       Germany         India       Nigeria      Pakistan         U.S.A           UAE            UK United States            US           usa           USA 
+          144            91           163           138           323            97           369            17           182           179            30            25            28           214 
+```
+The following code will do the following code converts everything to lowercase temporarily, removes whitespace, maps all U.S. variants to "USA".
+```R
+df$country <- trimws(tolower(df$country))
 
+df$country[df$country %in% c(
+  "usa",
+  "us",
+  "u.s.a",
+  "united states"
+)] <- "USA"
+```
