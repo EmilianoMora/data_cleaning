@@ -100,7 +100,7 @@ data %>%
 
 # Multiple conditions
 data %>%
-  filter(age > 25, platform == "Instagram")
+  filter(age > 25, primary_platform == "Instagram")
 
 # Using OR condition
 data %>%
@@ -158,32 +158,28 @@ colSums(is.na(data))
 # Percentage of missing values
 colMeans(is.na(data)) * 100
 
-# Remove rows with ANY missing values
-data_clean <- data %>%
-  drop_na()
-
 # Remove rows with missing values in specific columns
 data_clean <- data %>%
-  drop_na(age, primary_platform)
+  drop_na(user_age, platform_name)
 
 # Replace missing values with mean
 data <- data %>%
   mutate(
-    age = ifelse(is.na(age), mean(age, na.rm = TRUE), age)
+    user_age = ifelse(is.na(user_age), mean(user_age, na.rm = TRUE), user_age)
   )
 
 # Replace with median
 data <- data %>%
   mutate(
-    time_spent = ifelse(is.na(time_spent),
-                        median(time_spent, na.rm = TRUE),
-                        time_spent)
+    daily_usage_hours = ifelse(is.na(daily_usage_hours),
+                        median(daily_usage_hours, na.rm = TRUE),
+                        daily_usage_hours)
   )
 
 # Replace categorical NA
 data <- data %>%
   mutate(
-    location = replace_na(location, "Unknown")
+    location = replace_na(country, "Unknown")
   )
 ```
 ---
@@ -192,7 +188,7 @@ Aggregation helps extract insights and patterns.
 ```r
 # Group and summarize
 data %>%
-  group_by(primary_platform) %>%
+  group_by(platform_name) %>%
   summarise(
     avg_time = mean(daily_usage_hours, na.rm = TRUE),
     total_users = n()
@@ -200,7 +196,7 @@ data %>%
 
 # Multiple grouping variables
 data %>%
-  group_by(primary_platform, gender) %>%
+  group_by(platform_name, gender) %>%
   summarise(
     avg_time = mean(daily_usage_hours, na.rm = TRUE),
     users = n()
@@ -208,11 +204,11 @@ data %>%
 
 # Count occurrences
 data %>%
-  count(primary_platform, sort = TRUE)
+  count(platform_name, sort = TRUE)
 
 # Advanced summaries
 data %>%
-  group_by(primary_platform) %>%
+  group_by(platform_name) %>%
   summarise(
     min_time = min(daily_usage_hours, na.rm = TRUE),
     max_time = max(daily_usage_hours, na.rm = TRUE),
@@ -222,7 +218,7 @@ data %>%
 
 # Add aggregated values back to dataset
 data <- data %>%
-  group_by(primary_platform) %>%
+  group_by(platform_name) %>%
   mutate(
     avg_platform_time = mean(daily_usage_hours, na.rm = TRUE)
   )
@@ -232,8 +228,8 @@ data <- data %>%
 The %>% operator allows chaining operations for clarity.
 ```r
 data %>%
-  filter(age > 20) %>%
-  select(user_id, primary_platform, daily_usage_hours) %>%
+  filter(user_age > 20) %>%
+  select(user_id, platform_name, daily_usage_hours) %>%
   arrange(desc(daily_usage_hours))
 ```
 ---
@@ -280,10 +276,10 @@ str_extract_all(data$bio, "\\d+")           # Extract all numbers
 
 ```r
 # Replace first occurrence
-str_replace(data$location, "New York", "NY")
+str_replace(data$location, "UAE", "United Arab Emirates")
 
 # Replace all occurrences
-str_replace_all(data$location, " ", "_")
+str_replace_all(data$sleep_disrupttion, " ", "_")
 
 # Remove specific patterns
 data <- data %>%
@@ -313,7 +309,7 @@ data <- data %>%
 ### Extract Information from Complex Strings
 
 ```r
-# Extract date components from timestamp strings
+# Extract date components from account_join_date strings
 data <- data %>%
   mutate(
     year = str_extract(account_join_date, "\\d{4}"),
@@ -324,27 +320,15 @@ data <- data %>%
 # Extract numerical values from text
 data <- data %>%
   mutate(
-    post_count = as.numeric(str_extract(posts_info, "\\d+"))
+    post_count = as.numeric(str_extract(preferred_content_type, "\\d+"))
   )
 
 # Split strings and create new columns
 data <- data %>%
-  separate(location, 
-           into = c("city", "country"), 
-           sep = ", ",
+  separate(sleep_disruption, 
+           into = c("1st_impact", "2nd_impact"), 
+           sep = "_",
            remove = FALSE)
-```
-
-### Count Pattern Matches
-
-```r
-# Count how many times a pattern appears in each string
-data <- data %>%
-  mutate(
-    num_hashtags = str_count(bio, "#\\w+"),
-    num_mentions = str_count(bio, "@\\w+"),
-    num_urls = str_count(bio, "http[s]?://")
-  )
 ```
 ---
 ## Reshaping Data with Pivot Functions
