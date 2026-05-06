@@ -10,7 +10,7 @@ It is designed in a practical, hands-on style similar to real-world data cleanin
 - Data Manipulation & Transformation
 - Handling Missing Data
 - Data Aggregation & Summarization
-- Workflow Best Practices
+- Basic visualization with *ggplot*
 ---
 
 ## Environment Setup
@@ -24,6 +24,7 @@ install.packages("janitor")
 library(tidyverse) #Core data manipulation (dplyr, ggplot2, readr)
 library(janitor) #Clean column names and quick tabulations
 ```
+---
 ## Loading the Dataset
 ```r
 # Set working directory (optional)
@@ -32,6 +33,7 @@ setwd("path/to/your/folder")
 # Load dataset
 data <- read.csv("social_media_usage.csv", stringsAsFactors = FALSE)
 ```
+---
 ## Clean column names
 ```r
 data <- clean_names(data)
@@ -56,6 +58,7 @@ ncol(data)
 head(data, 10)
 tail(data, 10)
 ```
+---
 ## Explore categorical variables
 ```r
 table(data$platform)
@@ -66,6 +69,7 @@ table(data$gender)
 summary(data$age)
 summary(data$time_spent)
 ```
+---
 ## Quick visualization
 ```r
 ggplot(data, aes(x = platform)) +
@@ -73,6 +77,7 @@ ggplot(data, aes(x = platform)) +
   theme_minimal() +
   labs(title = "User Distribution by Platform")
 ```
+---
 ## Data Selection & Filtering
 ```r
 # Selecting columns
@@ -105,6 +110,7 @@ data %>%
 data %>%
   arrange(desc(time_spent))
 ```
+---
 ## Data Manipulation
 ```r
 # Creating new variables
@@ -139,6 +145,7 @@ data <- data %>%
 data <- data %>%
   distinct()
 ```
+---
 ## Handling Missing Data
 Missing data is common and critical to handle properly.
 ```r
@@ -176,6 +183,7 @@ data <- data %>%
     location = replace_na(location, "Unknown")
   )
 ```
+---
 ## Data Aggregation & Summarization
 Aggregation helps extract insights and patterns.
 ```r
@@ -216,6 +224,7 @@ data <- data %>%
     avg_platform_time = mean(time_spent, na.rm = TRUE)
   )
 ```
+---
 ## Piping
 The %>% operator allows chaining operations for clarity.
 ```r
@@ -224,6 +233,53 @@ data %>%
   select(user_id, platform, time_spent) %>%
   arrange(desc(time_spent))
 ```
+---
+## Joining Multiple Datasets
+In real-world projects, data is often split across multiple tables. R (via dplyr) provides several join functions similar to SQL.
+```r
+# Create a Second Dataset
+user_info <- data.frame(
+  user_id = c(1, 2, 3, 4),
+  country = c("USA", "UK", "Germany", "France")
+)
+```
+### Inner Join
+Returns only matching rows in both datasets.
+```r
+inner_join(data, user_info, by = "user_id")
+```
+### Left Join
+Keeps all rows from the main dataset (data), adds matches from user_info.
+```r
+left_join(data, user_info, by = "user_id")
+```
+### Right Join
+Keeps all rows from user_info.
+```r
+right_join(data, user_info, by = "user_id")
+```
+### Full Join
+Keeps all rows from both datasets.
+```r
+full_join(data, user_info, by = "user_id")
+```
+### Join on Different Column Names
+```r
+left_join(data, user_info, by = c("user_id" = "user_id"))
+```
+### Multiple Key Join
+```r
+left_join(data, user_info, by = c("user_id", "platform"))
+```
+### Anti Join (Find non-matching rows)
+```r
+anti_join(data, user_info, by = "user_id")
+```
+### Semi Join (Filter matching rows only)
+```r
+semi_join(data, user_info, by = "user_id")
+```
+---
 ## Basic Visualization
 ```r
 ggplot(data, aes(x = age, y = time_spent)) +
