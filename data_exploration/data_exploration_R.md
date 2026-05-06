@@ -36,7 +36,7 @@ library(stringr)        # String manipulation and regex functions
 setwd("path/to/your/folder")
 
 # Load dataset
-data <- read.csv("social_media_usage.csv", stringsAsFactors = FALSE)
+data <- read.csv("social_media_user_behavior.csv", stringsAsFactors = FALSE)
 ```
 ---
 ## Clean column names
@@ -66,18 +66,18 @@ tail(data, 10)
 ---
 ## Explore categorical variables
 ```r
-table(data$platform)
+table(data$primary_platform)
 table(data$gender)
 ```
 ## Explore numeric variables
 ```r
 summary(data$age)
-summary(data$time_spent)
+summary(data$daily_usage_hours)
 ```
 ---
 ## Quick visualization
 ```r
-ggplot(data, aes(x = platform)) +
+ggplot(data, aes(x = primary_platform)) +
   geom_bar() +
   theme_minimal() +
   labs(title = "User Distribution by Platform")
@@ -87,11 +87,11 @@ ggplot(data, aes(x = platform)) +
 ```r
 # Selecting columns
 data %>%
-  select(user_id, age, platform)
+  select(user_id, age, primary_platform)
 
 #Dropping columns
 data %>%
-  select(-location, -device_type)
+  select(-country, -preferred_device)
 
 # Filtering rows
 # Single condition
@@ -104,16 +104,15 @@ data %>%
 
 # Using OR condition
 data %>%
-  filter(platform == "Instagram" | platform == "Twitter")
+  filter(primary_platform == "Instagram" | primary_platform == "Twitter")
 
-# Sorting data
-# Ascending
+# Sorting data (Ascending)
 data %>%
   arrange(age)
 
-# Descending
+# Sorting data (Descending)
 data %>%
-  arrange(desc(time_spent))
+  arrange(desc(daily_usage_hours))
 ```
 ---
 ## Data Manipulation
@@ -122,15 +121,14 @@ data %>%
 data <- data %>%
   mutate(
     age_group = ifelse(age < 25, "Young", "Adult"),
-    time_hours = time_spent / 60
   )
 
 # Conditional transformations
 data <- data %>%
   mutate(
     usage_level = case_when(
-      time_spent > 180 ~ "High",
-      time_spent > 60 ~ "Medium",
+      daily_usage_hours > 3 ~ "High",
+      daily_usage_hours > 1 ~ "Medium",
       TRUE ~ "Low"
     )
   )
@@ -139,7 +137,7 @@ data <- data %>%
 data <- data %>%
   rename(
     user_age = age,
-    platform_name = platform
+    platform_name = primary_platform
   )
 
 # Reordering columns
@@ -166,7 +164,7 @@ data_clean <- data %>%
 
 # Remove rows with missing values in specific columns
 data_clean <- data %>%
-  drop_na(age, platform)
+  drop_na(age, primary_platform)
 
 # Replace missing values with mean
 data <- data %>%
@@ -194,39 +192,39 @@ Aggregation helps extract insights and patterns.
 ```r
 # Group and summarize
 data %>%
-  group_by(platform) %>%
+  group_by(primary_platform) %>%
   summarise(
-    avg_time = mean(time_spent, na.rm = TRUE),
+    avg_time = mean(daily_usage_hours, na.rm = TRUE),
     total_users = n()
   )
 
 # Multiple grouping variables
 data %>%
-  group_by(platform, gender) %>%
+  group_by(primary_platform, gender) %>%
   summarise(
-    avg_time = mean(time_spent, na.rm = TRUE),
+    avg_time = mean(daily_usage_hours, na.rm = TRUE),
     users = n()
   )
 
 # Count occurrences
 data %>%
-  count(platform, sort = TRUE)
+  count(primary_platform, sort = TRUE)
 
 # Advanced summaries
 data %>%
-  group_by(platform) %>%
+  group_by(primary_platform) %>%
   summarise(
-    min_time = min(time_spent, na.rm = TRUE),
-    max_time = max(time_spent, na.rm = TRUE),
-    median_time = median(time_spent, na.rm = TRUE),
-    sd_time = sd(time_spent, na.rm = TRUE)
+    min_time = min(daily_usage_hours, na.rm = TRUE),
+    max_time = max(daily_usage_hours, na.rm = TRUE),
+    median_time = median(daily_usage_hours, na.rm = TRUE),
+    sd_time = sd(daily_usage_hours, na.rm = TRUE)
   )
 
 # Add aggregated values back to dataset
 data <- data %>%
-  group_by(platform) %>%
+  group_by(primary_platform) %>%
   mutate(
-    avg_platform_time = mean(time_spent, na.rm = TRUE)
+    avg_platform_time = mean(daily_usage_hours, na.rm = TRUE)
   )
 ```
 ---
@@ -235,8 +233,8 @@ The %>% operator allows chaining operations for clarity.
 ```r
 data %>%
   filter(age > 20) %>%
-  select(user_id, platform, time_spent) %>%
-  arrange(desc(time_spent))
+  select(user_id, primary_platform, daily_usage_hours) %>%
+  arrange(desc(daily_usage_hours))
 ```
 ---
 ## String Cleaning with Regular Expressions
@@ -318,9 +316,9 @@ data <- data %>%
 # Extract date components from timestamp strings
 data <- data %>%
   mutate(
-    year = str_extract(timestamp, "\\d{4}"),
-    month = str_extract(timestamp, "(?<=-)[0-9]{2}"),
-    date_clean = str_extract(timestamp, "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
+    year = str_extract(account_join_date, "\\d{4}"),
+    month = str_extract(account_join_date, "(?<=-)[0-9]{2}"),
+    date_clean = str_extract(account_join_date, "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
   )
 
 # Extract numerical values from text
@@ -348,33 +346,6 @@ data <- data %>%
     num_urls = str_count(bio, "http[s]?://")
   )
 ```
-
-### Practical Example: Clean User Data
-
-```r
-# Real-world scenario: Clean messy user data
-messy_data <- data.frame(
-  email = c("John@GMAIL.COM", "  jane_doe@yahoo.com  ", "invalid.email"),
-  phone = c("(555) 123-4567", "555-123-4567", "555.123.4567"),
-  bio = c("Follow me @user123 #travel #photo", "Interested in #coding", NA)
-)
-
-clean_data <- messy_data %>%
-  mutate(
-    # Clean emails
-    email = str_to_lower(str_trim(email)),
-    email_valid = str_detect(email, "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"),
-    
-    # Standardize phone numbers
-    phone = str_replace_all(phone, "[^0-9]", ""),
-    phone = str_glue("{str_sub(phone, 1, 3)}-{str_sub(phone, 4, 6)}-{str_sub(phone, 7, 10)}"),
-    
-    # Count social references
-    mentions = str_count(bio, "@\\w+"),
-    hashtags = str_count(bio, "#\\w+")
-  )
-```
-
 ---
 ## Reshaping Data with Pivot Functions
 
