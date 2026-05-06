@@ -10,6 +10,8 @@ It is designed in a practical, hands-on style similar to real-world data cleanin
 - Data Manipulation & Transformation
 - Handling Missing Data
 - Data Aggregation & Summarization
+- String Cleaning with Regular Expressions
+- Reshaping Data with Pivot Functions
 - Joining Multiple Datasets
 - Basic Visualization with *ggplot*
 ---
@@ -21,9 +23,11 @@ Before starting, install and load the required packages.
 ```r
 install.packages("tidyverse")
 install.packages("janitor")
+install.packages("stringr")
 
-library(tidyverse) #Core data manipulation (dplyr, ggplot2, readr)
-library(janitor) #Clean column names and quick tabulations
+library(tidyverse)      # Core data manipulation (dplyr, ggplot2, readr, tidyr)
+library(janitor)        # Clean column names and quick tabulations
+library(stringr)        # String manipulation and regex functions
 ```
 ---
 ## Loading the Dataset
@@ -234,6 +238,357 @@ data %>%
   select(user_id, platform, time_spent) %>%
   arrange(desc(time_spent))
 ```
+---
+## String Cleaning with Regular Expressions
+
+Regular expressions (regex) are powerful tools for pattern matching and string manipulation. The `stringr` package provides user-friendly functions for working with strings.
+
+### Basic String Detection and Extraction
+
+```r
+# Detect if a string matches a pattern
+str_detect(data$email, "@gmail\\.com")      # Returns TRUE/FALSE
+str_detect(data$username, "^[A-Z]")         # Starts with uppercase letter
+
+# Filter rows based on string patterns
+data %>%
+  filter(str_detect(email, "@gmail\\.com"))
+
+# Extract parts of strings using regex
+str_extract(data$email, "[a-zA-Z0-9]+")     # Extract first alphanumeric sequence
+str_extract_all(data$bio, "\\d+")           # Extract all numbers
+```
+
+### Common Regular Expression Patterns
+
+| Pattern | Meaning | Example |
+|---------|---------|---------|
+| `.` | Any character | `a.c` matches "abc", "adc" |
+| `\d` | Digit (0-9) | `\\d{3}` matches "123" |
+| `\w` | Word character (a-z, A-Z, 0-9, _) | `\\w+` matches "user_123" |
+| `\s` | Whitespace | `hello\\sworld` matches "hello world" |
+| `^` | Start of string | `^user` matches "user123" but not "theuser" |
+| `$` | End of string | `123$` matches "abc123" but not "123abc" |
+| `[abc]` | Any character in brackets | `[aeiou]` matches any vowel |
+| `[a-z]` | Character range | `[0-9]` matches any digit |
+| `+` | One or more | `a+` matches "a", "aa", "aaa" |
+| `*` | Zero or more | `a*b` matches "b", "ab", "aab" |
+| `?` | Zero or one | `a?b` matches "b", "ab" |
+| `{n,m}` | Between n and m times | `a{2,4}` matches "aa", "aaa", "aaaa" |
+| `\|` | OR operator | `cat\|dog` matches "cat" or "dog" |
+| `()` | Group | `(ab)+` matches "ab", "abab" |
+
+### Replace and Clean Strings
+
+```r
+# Replace first occurrence
+str_replace(data$location, "New York", "NY")
+
+# Replace all occurrences
+str_replace_all(data$location, " ", "_")
+
+# Remove specific patterns
+data <- data %>%
+  mutate(
+    username_clean = str_remove(username, "@"),
+    phone_clean = str_remove_all(phone, "[^0-9]")  # Keep only digits
+  )
+
+# Clean email addresses (lowercase and trim whitespace)
+data <- data %>%
+  mutate(
+    email = str_trim(email) %>% str_to_lower()
+  )
+
+# Standardize platform names (handle typos and variations)
+data <- data %>%
+  mutate(
+    platform = case_when(
+      str_detect(platform, "(?i)insta") ~ "Instagram",  # (?i) = case insensitive
+      str_detect(platform, "(?i)twitter|tweet") ~ "Twitter",
+      str_detect(platform, "(?i)facebook|fb") ~ "Facebook",
+      TRUE ~ platform
+    )
+  )
+```
+
+### Extract Information from Complex Strings
+
+```r
+# Extract date components from timestamp strings
+data <- data %>%
+  mutate(
+    year = str_extract(timestamp, "\\d{4}"),
+    month = str_extract(timestamp, "(?<=-)[0-9]{2}"),
+    date_clean = str_extract(timestamp, "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
+  )
+
+# Extract numerical values from text
+data <- data %>%
+  mutate(
+    post_count = as.numeric(str_extract(posts_info, "\\d+"))
+  )
+
+# Split strings and create new columns
+data <- data %>%
+  separate(location, 
+           into = c("city", "country"), 
+           sep = ", ",
+           remove = FALSE)
+```
+
+### Count Pattern Matches
+
+```r
+# Count how many times a pattern appears in each string
+data <- data %>%
+  mutate(
+    num_hashtags = str_count(bio, "#\\w+"),
+    num_mentions = str_count(bio, "@\\w+"),
+    num_urls = str_count(bio, "http[s]?://")
+  )
+```
+
+### Practical Example: Clean User Data
+
+```r
+# Real-world scenario: Clean messy user data
+messy_data <- data.frame(
+  email = c("John@GMAIL.COM", "  jane_doe@yahoo.com  ", "invalid.email"),
+  phone = c("(555) 123-4567", "555-123-4567", "555.123.4567"),
+  bio = c("Follow me @user123 #travel #photo", "Interested in #coding", NA)
+)
+
+clean_data <- messy_data %>%
+  mutate(
+    # Clean emails
+    email = str_to_lower(str_trim(email)),
+    email_valid = str_detect(email, "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"),
+    
+    # Standardize phone numbers
+    phone = str_replace_all(phone, "[^0-9]", ""),
+    phone = str_glue("{str_sub(phone, 1, 3)}-{str_sub(phone, 4, 6)}-{str_sub(phone, 7, 10)}"),
+    
+    # Count social references
+    mentions = str_count(bio, "@\\w+"),
+    hashtags = str_count(bio, "#\\w+")
+  )
+```
+
+---
+## Reshaping Data with Pivot Functions
+
+Real-world data often comes in formats that aren't ideal for analysis. Reshaping data from **long to wide format** (and vice versa) is essential for exploratory analysis and visualization.
+
+### Understanding Long vs Wide Format
+
+**Wide Format** (each variable in its own column):
+```
+platform     instagram_users    twitter_users    facebook_users
+2024-01        1500               800              2000
+2024-02        1650               850              2100
+```
+
+**Long Format** (variables in rows):
+```
+date       platform      users
+2024-01    instagram     1500
+2024-01    twitter       800
+2024-01    facebook      2000
+2024-02    instagram     1650
+```
+
+### Converting Wide to Long with `pivot_longer()`
+
+```r
+# Basic conversion: make data longer
+data_long <- data_wide %>%
+  pivot_longer(
+    cols = c(instagram_users, twitter_users, facebook_users),
+    names_to = "platform",
+    values_to = "users"
+  )
+
+# More practical example with the social media data
+# Assume data has columns: user_id, date, instagram_time, twitter_time, facebook_time
+usage_long <- data %>%
+  pivot_longer(
+    cols = starts_with("instagram_") | starts_with("twitter_") | starts_with("facebook_"),
+    names_to = "platform_metric",
+    values_to = "value"
+  ) %>%
+  separate(platform_metric, 
+           into = c("platform", "metric"),
+           sep = "_")
+
+# Select specific columns and transform
+daily_activity <- data %>%
+  pivot_longer(
+    cols = monday:sunday,
+    names_to = "day_of_week",
+    values_to = "time_spent"
+  )
+
+# Remove NA values while pivoting
+engagement_long <- data %>%
+  pivot_longer(
+    cols = likes:shares,
+    names_to = "engagement_type",
+    values_to = "count",
+    values_drop_na = TRUE
+  )
+```
+
+### Converting Long to Wide with `pivot_wider()`
+
+```r
+# Basic conversion: make data wider
+data_wide <- data_long %>%
+  pivot_wider(
+    names_from = platform,
+    values_from = users
+  )
+
+# Real-world example: create a user-platform usage matrix
+usage_matrix <- data %>%
+  group_by(user_id, platform) %>%
+  summarise(total_time = sum(time_spent, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(
+    names_from = platform,
+    values_from = total_time,
+    values_fill = 0  # Fill missing values with 0
+  )
+
+# Create aggregated summary table
+summary_wide <- data %>%
+  group_by(platform, gender) %>%
+  summarise(
+    avg_age = mean(age, na.rm = TRUE),
+    avg_time = mean(time_spent, na.rm = TRUE),
+    user_count = n(),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(
+    names_from = gender,
+    values_from = c(avg_age, avg_time, user_count),
+    names_sep = "_"
+  )
+
+# Handle multiple value columns with aggregation
+platform_stats <- data %>%
+  group_by(platform, age_group) %>%
+  summarise(
+    mean_time = mean(time_spent, na.rm = TRUE),
+    median_time = median(time_spent, na.rm = TRUE),
+    user_count = n(),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(
+    names_from = age_group,
+    values_from = c(mean_time, median_time, user_count),
+    names_sep = "_"
+  )
+```
+
+### Advanced Pivoting Patterns
+
+```r
+# Pivot multiple value columns
+data_wide <- data_long %>%
+  pivot_wider(
+    names_from = platform,
+    values_from = c(users, engagement_rate),
+    names_sep = "_"
+  )
+
+# Create a comparison matrix
+comparison <- data %>%
+  pivot_wider(
+    id_cols = user_id,
+    names_from = platform,
+    values_from = time_spent,
+    values_fill = 0
+  ) %>%
+  mutate(
+    total_time = rowSums(across(where(is.numeric))),
+    top_platform = names(.[2:4])[apply(.[2:4], 1, which.max)]
+  )
+
+# Pivot with custom names using names_glue
+data_custom <- data_long %>%
+  pivot_wider(
+    names_from = c(platform, metric),
+    values_from = value,
+    names_glue = "{platform}_{metric}"
+  )
+
+# Unpivot and reshape with functions
+nested_summary <- data %>%
+  pivot_longer(
+    cols = -user_id,
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  group_by(metric) %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    sd = sd(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(
+    names_from = metric,
+    values_from = c(mean, sd)
+  )
+```
+
+### Complete Example: Reshape and Analyze
+
+```r
+# Load and reshape daily activity data
+daily_data <- read.csv("daily_activity.csv")
+
+activity_analysis <- daily_data %>%
+  # Convert from wide to long format
+  pivot_longer(
+    cols = starts_with("day_"),
+    names_to = "day",
+    names_prefix = "day_",
+    values_to = "time_spent"
+  ) %>%
+  
+  # Clean and transform
+  mutate(
+    day = factor(day, 
+                 levels = c("monday", "tuesday", "wednesday", "thursday", 
+                           "friday", "saturday", "sunday")),
+    platform = str_to_title(platform)
+  ) %>%
+  
+  # Summarize
+  group_by(platform, day) %>%
+  summarise(
+    avg_time = mean(time_spent, na.rm = TRUE),
+    median_time = median(time_spent, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  
+  # Convert back to wide for comparison
+  pivot_wider(
+    names_from = day,
+    values_from = avg_time
+  )
+
+# Visualize the pivoted data
+activity_analysis %>%
+  pivot_longer(cols = -platform, names_to = "day", values_to = "avg_time") %>%
+  ggplot(aes(x = day, y = avg_time, fill = platform)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Average Time Spent by Platform and Day",
+       x = "Day of Week",
+       y = "Average Time (minutes)")
+```
+
 ---
 ## Joining Multiple Datasets
 In real-world projects, data is often split across multiple tables. R (via dplyr) provides several join functions similar to SQL.
