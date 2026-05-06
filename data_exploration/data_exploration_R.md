@@ -593,7 +593,7 @@ semi_join(data, user_info, by = "user_id")
 ---
 ## Basic Visualization
 ```r
-ggplot(data, aes(x = age, y = time_spent)) +
+ggplot(data, aes(x = user_age, y = daily_usage_hours)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm") +
   theme_minimal() +
