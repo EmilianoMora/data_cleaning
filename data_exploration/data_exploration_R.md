@@ -550,8 +550,8 @@ In real-world projects, data is often split across multiple tables. R (via dplyr
 ```r
 # Create a Second Dataset
 user_info <- data.frame(
-  user_id = c(1, 2, 3, 4),
-  country = c("USA", "UK", "Germany", "France")
+  user_id = c("USR00001", "USR00002", "USR00003", "USR00004"),
+  country = c("UK", "USA", "UAE", "Pakistan")
 )
 ```
 ### Inner Join
