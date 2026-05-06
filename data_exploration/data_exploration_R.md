@@ -10,7 +10,8 @@ It is designed in a practical, hands-on style similar to real-world data cleanin
 - Data Manipulation & Transformation
 - Handling Missing Data
 - Data Aggregation & Summarization
-- Basic visualization with *ggplot*
+- Joining Multiple Datasets
+- Basic Visualization with *ggplot*
 ---
 
 ## Environment Setup
