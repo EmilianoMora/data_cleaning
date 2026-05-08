@@ -12,7 +12,7 @@ def sanitize_name(name):
     name = name.strip().lower() #Remove spaces at beginning/end and convert to lowercase (e.g., " Customer Name " to "customer name")
     name = re.sub(r'\W+', '_', name) #Replace special characters with underscores (e.g., customer-name! to customer_name_)
     name = re.sub(r'_+', '_', name) #Remove repeated underscores (e.g., customer___name to customer_name)
-    return name.strip('_') #Remove spaces at beginning/end (e.g., _customer_name_ to customer_name)
+    return name.strip('_') #Remove underscores at beginning/end (e.g., _customer_name_ to customer_name)
 
 
 def infer_relationship_groups(columns):
@@ -142,15 +142,15 @@ def transform_csv_to_relational(csv_path, db_path=None):
         sample = f.read(4096)
         f.seek(0)
 
-        dialect = csv.Sniffer().sniff(sample)
-        reader = csv.DictReader(f, dialect=dialect)
+        dialect = csv.Sniffer().sniff(sample) #Detect delimiter automatically (i.e., comma, tab, semicolon)
+        reader = csv.DictReader(f, dialect=dialect) #Read rows. Each row becomes a dictionary.
 
-        rows = list(reader)
+        rows = list(reader) #Store all rows into a list
 
         if not reader.fieldnames:
             raise ValueError("CSV file has no header row.")
 
-        original_columns = reader.fieldnames
+        original_columns = reader.fieldnames #Get column names
 
     columns = [sanitize_name(c) for c in original_columns]
 
@@ -162,14 +162,14 @@ def transform_csv_to_relational(csv_path, db_path=None):
     # 2. Connect DB
     # ------------------------------------------------------------
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+    cursor = conn.cursor() #Cursor executes SQL commands.
 
-    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("PRAGMA foreign_keys = ON") #Enable foreign keys
 
     # ------------------------------------------------------------
     # 3. Create staging table
     # ------------------------------------------------------------
-    staging_table = "staging"
+    staging_table = "staging" #Create Staging Table. A staging table is temporary storage.
 
     cursor.execute(f'DROP TABLE IF EXISTS "{staging_table}"')
 
@@ -362,6 +362,8 @@ def transform_csv_to_relational(csv_path, db_path=None):
     conn.close()
 
     print(f"\nSQLite database saved to: {db_path}")
+
+# Read terminal arguments
 
 if __name__ == '__main__':
 
