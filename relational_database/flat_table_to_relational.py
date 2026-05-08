@@ -9,10 +9,10 @@ def sanitize_name(name):
     """
     Convert arbitrary column/table names into SQLite-safe identifiers.
     """
-    name = name.strip().lower()
-    name = re.sub(r'\W+', '_', name)
-    name = re.sub(r'_+', '_', name)
-    return name.strip('_')
+    name = name.strip().lower() #Remove spaces at beginning/end and convert to lowercase (e.g., " Customer Name " to "customer name")
+    name = re.sub(r'\W+', '_', name) #Replace special characters with underscores (e.g., customer-name! to customer_name_)
+    name = re.sub(r'_+', '_', name) #Remove repeated underscores (e.g., customer___name to customer_name)
+    return name.strip('_') #Remove spaces at beginning/end (e.g., _customer_name_ to customer_name)
 
 
 def infer_relationship_groups(columns):
